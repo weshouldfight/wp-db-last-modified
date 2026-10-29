@@ -5,7 +5,7 @@ Plugin Name: Last Modified
 Description: Logs changes to content, media, menus, users and settings and lists them in the dashboard
 Version:     2.1.1
 Author:      Christoph Mandl
-Author URI:  https://www.studioh8.de
+Author URI:  https://mandl.design
 Update URI:  false
 */
 

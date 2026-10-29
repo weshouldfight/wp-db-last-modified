@@ -3,7 +3,7 @@
 /*
 Plugin Name: Last Modified
 Description: Logs changes to content, media, menus, users and settings and lists them in the dashboard
-Version:     2.0
+Version:     2.1
 Author:      Christoph Mandl
 Author URI:  https://www.studioh8.de
 */
@@ -331,7 +331,7 @@ add_action( 'wp_dashboard_setup', function () {
 
 function dblm_widget() {
 	global $wpdb;
-	$rows = $wpdb->get_results( 'SELECT * FROM ' . dblm_table() . ' ORDER BY logged_at DESC, id DESC LIMIT 50' );
+	$rows = $wpdb->get_results( 'SELECT * FROM ' . dblm_table() . ' ' . dblm_visible() . ' ORDER BY logged_at DESC, id DESC LIMIT 50' );
 	?>
 	<style>
 		#last_modified_widget ul { margin: 0; }
@@ -352,6 +352,27 @@ function dblm_widget() {
 		echo '</details>';
 	}
 	echo '<p><small>Protokoll seit ' . esc_html( wp_date( 'j. F Y, H:i', get_option( 'dblm_since' ) ) ) . ' Uhr</small></p>';
+}
+
+// Administrators see everything, everyone else only what they may edit themselves:
+// their post types, their taxonomies and comments. Accounts, settings, plugins and menus stay hidden.
+
+function dblm_visible() {
+	if ( current_user_can( 'manage_options' ) ) {
+		return '';
+	}
+	$types      = array_filter( get_post_types( array(), 'objects' ), function ( $type ) {
+		return current_user_can( $type->cap->edit_posts );
+	} );
+	$taxonomies = array_filter( get_taxonomies( array(), 'objects' ), function ( $tax ) {
+		return current_user_can( $tax->cap->manage_terms );
+	} );
+	$in = function ( $names ) {
+		return "'" . implode( "','", array_map( 'esc_sql', array_keys( $names ) ) ) . "'";
+	};
+	return "WHERE ( object_type = 'post' AND object_subtype IN (" . $in( $types ) . ') )'
+		. " OR ( object_type = 'term' AND object_subtype IN (" . $in( $taxonomies ) . ') )'
+		. ( current_user_can( 'moderate_comments' ) ? " OR object_type = 'comment'" : '' );
 }
 
 function dblm_list( $rows ) {
